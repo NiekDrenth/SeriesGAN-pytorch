@@ -1,3 +1,0 @@
-# SeriesGAN implementation in pytorch
-
-
