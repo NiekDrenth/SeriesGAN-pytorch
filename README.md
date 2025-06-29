@@ -11,7 +11,7 @@ If you have [uv](https://github.com/astral-sh/uv) installed (recommended):
 git clone https://github.com/NiekDrenth/SeriesGAN-pytorch.git
 cd SeriesGAN-pytorch
 uv pip install -r requirements.txt
-
+uv run train.py
 ```
 
 Without uv:
