@@ -10,7 +10,7 @@ If you have [uv](https://github.com/astral-sh/uv) installed (recommended):
 ``` sh
 git clone https://github.com/NiekDrenth/SeriesGAN-pytorch.git
 cd SeriesGAN-pytorch
-uv pip install -r requirements.txt
+uv sync
 uv run train.py
 ```
 
