@@ -1,27 +1,130 @@
 #!/usr/bin/env python3.13
 from enum import auto
 from data.data_utils import get_dataloader
-from models.autoencoder import TemporalEncoder, TemporalDecoder, TemporalAutoEncoder
+from models.autoencoder import  TemporalAutoEncoder
 from models.embedder import EmbedderRecoveryNetwork
 from models.discriminators import Discriminator, AE_Discriminator
 from models.generator import Generator
 from models.supervisor import Supervisor
 import torch
 import torch.nn as nn
+import argparse
+import os
+import sys
 
+def parse_args():
+    parser = argparse.ArgumentParser(
+        description="Parse arguments for your model."
+    )
+
+    parser.add_argument(
+        "--seq_len",
+        type=int,
+        default=24,
+        help="Sequence length (default: 24)"
+    )
+    parser.add_argument(
+        "--batch_size",
+        type=int,
+        default=100,
+        help="Batch size (default: 100)"
+    )
+    parser.add_argument(
+        "--dim",
+        type=int,
+        default=6,
+        help="Dimension size (default: 6)"
+    )
+    parser.add_argument(
+        "--num_layers",
+        type=int,
+        default=4,
+        help="Number of layers (default: 4)"
+    )
+    parser.add_argument(
+        "--temporal_dimension",
+        type=int,
+        default=16,
+        help="Temporal dimension (default: 16)"
+    )
+    parser.add_argument(
+        "--num_epoch",
+        type=int,
+        default=50,
+        help="Number of epochs (default: 50)"
+    )
+    parser.add_argument(
+        "--num_generations",
+        type=int,
+        default=1000,
+        help="Number of generations (default: 1000)"
+    )
+    parser.add_argument(
+        "--filename",
+        type=str,
+        default="stock_data.csv",
+        help='Filename (default: "stock_data.csv")'
+    )
+
+    args = parser.parse_args()
+    return args
+
+args = parse_args()
 
 # Network parameters
-seq_len = 24
-batch_size = 100
-dim = 6
-num_layers = 4
-temporal_dimension = 16
-num_epoch = 50
+seq_len = args.seq_len
+batch_size = args.batch_size
+dim = args.dim
+num_layers = args.num_layers
+temporal_dimension = args.temporal_dimension
+num_epoch = args.num_epoch
+num_generations = args.num_generations
+filename = args.filename
+
+basename = os.path.basename(filename)
+
+# Remove the extension
+namefile, _ = os.path.splitext(basename)
+
+
+
+save_dir = "model_weights"
+os.makedirs(save_dir, exist_ok=True)
+
+# Build a filename stem from hyperparameters
+filename_stem = (
+    f"data{namefile}_"
+    f"seq{args.seq_len}_"
+    f"batch{args.batch_size}_"
+    f"dim{args.dim}_"
+    f"layers{args.num_layers}_"
+    f"tempdim{args.temporal_dimension}_"
+    f"epochs{args.num_epoch}_"
+    f"gens{args.num_generations}"
+)
+
+model_dir = os.path.join("model_weights", filename_stem)
+
+if os.path.exists(model_dir):
+    print(f"[WARNING] Model directory already exists: {model_dir}")
+    response = input("Do you want to overwrite it? [y/N]: ").strip().lower()
+    if response != 'y':
+        print("Exiting without training.")
+        sys.exit(0)
+
+# Create the directory if it doesn't exist (or was just confirmed for overwrite)
+os.makedirs(model_dir, exist_ok=True)
+
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+if torch.cuda.is_available():
+    print("Training on GPU")
+else:
+    print("Training on CPU")
 
+# device = torch.device("cpu")
 train_loader, train_df, test_loader, test_df, scaler = get_dataloader(
-    "../data/stock_data.csv", seq_len=seq_len, batch_size=batch_size
+    csv_file = filename, seq_len=seq_len, batch_size=batch_size
 )
 
 
@@ -292,3 +395,17 @@ for epoch in range(num_epoch*2):
     print(
         f"Epoch: {epoch + 1}. \n Generator_loss: {G_loss}, \n embedder_loss: {embedder_loss}, \n Discriminator loss: {discriminator_loss}, \n Ae_discriminator_loss: {ae_loss}"
     )
+
+
+
+
+
+# Save each model's weights separately
+torch.save(autoencoder.state_dict(), os.path.join(model_dir, f"autoencoder_{filename_stem}.pt"))
+torch.save(embedder.state_dict(), os.path.join(model_dir, f"embedder_{filename_stem}.pt"))
+torch.save(discriminator.state_dict(), os.path.join(model_dir, f"discriminator_{filename_stem}.pt"))
+torch.save(ae_discriminator.state_dict(), os.path.join(model_dir, f"ae_discriminator_{filename_stem}.pt"))
+torch.save(generator.state_dict(), os.path.join(model_dir, f"generator_{filename_stem}.pt"))
+torch.save(supervisor.state_dict(), os.path.join(model_dir, f"supervisor_{filename_stem}.pt"))
+
+print("All model weights saved successfully.")

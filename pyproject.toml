@@ -39,4 +39,5 @@ dependencies = [
     "triton==3.3.1",
     "typing-extensions==4.14.0",
     "tzdata==2025.2",
+    "wrds>=3.1.6",
 ]
