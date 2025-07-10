@@ -43,7 +43,9 @@ def get_dataloader(
         tuple: (train_dataloader, test_dataloader, train_df, test_df, scaler)
     """
     # Load data
-    df = pl.read_csv(csv_file)
+    df_raw = pl.read_csv(csv_file)
+    df = df_raw.drop_nulls()
+    print(f"Dropped {len(df_raw) - len(df)} rows ({(1 - len(df) / len(df_raw)) * 100:.2f}%) due to NaNs")
 
     # Calculate split index for time series (no shuffling for temporal order)
     n_samples = len(df)
